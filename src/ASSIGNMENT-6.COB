@@ -16,14 +16,14 @@
 
        WORKING-STORAGE SECTION.
        01  READ-LOOP-INFO.
-           COPY "A6-LOOP".
+           COPY A6-LOOP.
 
        01  CUSTOMER-TABLE.
            02 CUSTOMERS OCCURS 1 TO 1000 TIMES
                        DEPENDING ON CUSTOMER-COUNT
                        INDEXED BY CUSTOMER-INDEX.
                03 CUSTOMER-DATA.
-                   COPY "CUSTOMER".
+                   COPY CUSTOMER.
 
        77  PRETTY-BALANCE       PIC Z(7).99.
        01  EOF-SWITCH           PIC X        VALUE "N".

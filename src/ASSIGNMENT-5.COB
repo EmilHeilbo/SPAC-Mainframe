@@ -5,14 +5,14 @@
        WORKING-STORAGE SECTION.
 
        01  CUSTOMER-RECORD.
-           COPY "CUSTOMER".
+           COPY CUSTOMER.
 
        77  TRIMMED-BALANCE       PIC Z(7).99.
        77  FULL-NAME             PIC X(40).
        77  FULL-NAME-CLEAN       PIC X(40).
 
        01  LOOP-VARIABLES.
-           COPY "A5-LOOP".
+           COPY A5-LOOP.
 
        PROCEDURE DIVISION.
       *    Assign values to the variables

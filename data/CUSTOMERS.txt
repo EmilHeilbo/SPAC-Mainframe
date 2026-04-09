@@ -1,5 +1,5 @@
-0100100001Emil                Heilbo              DABADKKK990100100001000450000EUR
-0100100002Jens                Jensen              DABADKKK990100100002000100000DKK
-0100100003John                Hansen              DABADKKK990100100003004500000DKK
-0100100001John                Doe                 DABADKKK990100100004000500000USD
-0100100005Maia                Crimew              DABADKKK990100100005500000000CHF
+0100100001Emil                Heilbo              31811413emil@heilbo.dev                                   DABADKKK990100100001000450000EURBorgergade                    1    1.salth.  Silkeborg           8600DK
+0100100002Jens                Jensen              00000001jensjensen@example.com                            DABADKKK990100100002000100000DKKBorgergade                    1    1.saltv.  Silkeborg           8600DK
+0100100003John                Hansen              00000002johnhansen@example.com                            DABADKKK990100100003004500000DKKBorgergade                    1    2.salth.  Silkeborg           8600DK
+0100100001John                Doe                 00000003johndoe@example.com                               DABADKKK990100100004000500000USDBorgergade                    1    2.saltv.  Silkeborg           8600DK
+0100100005Maia                Crimew              00000004maiacrimew@example.com                            DABADKKK990100100005500000000CHFBorgergade                    1    3.salth.  Silkeborg           8600DK

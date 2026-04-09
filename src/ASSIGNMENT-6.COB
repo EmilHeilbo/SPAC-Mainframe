@@ -27,7 +27,7 @@
 
        77  PRETTY-BALANCE       PIC Z(7).99.
        01  EOF-SWITCH           PIC X        VALUE "N".
-           88  EOF    VALUE "Y".
+           88  EOF                           VALUE "Y".
 
 
        PROCEDURE DIVISION.

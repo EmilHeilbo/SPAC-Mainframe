@@ -12,34 +12,57 @@
 
        FILE SECTION.
        FD  CUSTOMER-FILE.
-       01  CUSTOMER-RECORD.
-           COPY "CUSTOMER".
+       01  CUSTOMER-RECORD      PIC X(82).
 
        WORKING-STORAGE SECTION.
+       01  READ-LOOP-INFO.
+           COPY "A6-LOOP".
+
+       01  CUSTOMER-TABLE.
+           02 CUSTOMERS OCCURS 1 TO 1000 TIMES
+                       DEPENDING ON CUSTOMER-COUNT
+                       INDEXED BY CUSTOMER-INDEX.
+               03 CUSTOMER-DATA.
+                   COPY "CUSTOMER".
 
        77  PRETTY-BALANCE       PIC Z(7).99.
-       77  EOF                  PIC X         VALUE "N".
+       01  EOF-SWITCH           PIC X        VALUE "N".
+           88  EOF    VALUE "Y".
+
 
        PROCEDURE DIVISION.
-       POPULATE-CUSTOMER-TABLE.
+       MAIN-RUNTIME.
            OPEN INPUT CUSTOMER-FILE.
-           PERFORM UNTIL EOF = "Y"
-           READ CUSTOMER-FILE INTO CUSTOMER-RECORD
-           AT END
-               MOVE "Y" TO EOF
-           NOT AT END
-               MOVE ACCOUNT-BALANCE TO PRETTY-BALANCE
-               DISPLAY "========================================"
-               DISPLAY " Customer ID     | " CUSTOMER-ID
-               DISPLAY " Customer Name   | "FUNCTION TRIM(FIRST-NAME)
-               " " FUNCTION TRIM(LAST-NAME)
-               DISPLAY " Account Number  | " ACCOUNT-NUMBER
-               DISPLAY " Account Balance | "
-               FUNCTION TRIM(PRETTY-BALANCE) " " CURRENCY-CODE
-               DISPLAY "========================================"
-           END-READ
-           END-PERFORM
-
+           PERFORM READ-LOOP UNTIL EOF
            CLOSE CUSTOMER-FILE
 
+           PERFORM PRINT-CUSTOMER VARYING LOOP-INDEX FROM 1 BY 1
+               UNTIL LOOP-INDEX > CUSTOMER-COUNT.
+           MOVE CUSTOMER-COUNT TO FINAL-COUNT
+           DISPLAY "Customers added: " FUNCTION TRIM(FINAL-COUNT)
+
            STOP RUN.
+
+       READ-LOOP.
+           READ CUSTOMER-FILE
+               AT END
+                   MOVE "Y" TO EOF-SWITCH
+               NOT AT END
+                   IF CUSTOMER-COUNT < MAX-CUSTOMERS
+                       ADD 1 TO CUSTOMER-COUNT
+                       MOVE CUSTOMER-RECORD
+                           TO CUSTOMER-DATA (CUSTOMER-COUNT)
+                    END-IF
+           END-READ.
+
+       PRINT-CUSTOMER.
+           MOVE ACCOUNT-BALANCE(LOOP-INDEX) TO PRETTY-BALANCE
+           DISPLAY "========================================"
+           DISPLAY " Customer ID     | " CUSTOMER-ID(LOOP-INDEX)
+           DISPLAY " Customer Name   | "
+           FUNCTION TRIM(FIRST-NAME(LOOP-INDEX))
+           " " FUNCTION TRIM(LAST-NAME(LOOP-INDEX))
+           DISPLAY " Account Number  | " ACCOUNT-NUMBER(LOOP-INDEX)
+           DISPLAY " Account Balance | "
+           FUNCTION TRIM(PRETTY-BALANCE) " " CURRENCY-CODE(LOOP-INDEX)
+           DISPLAY "========================================".

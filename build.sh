@@ -4,6 +4,6 @@ if [ -z $1 ]; then
 else
     i=$1
 fi
-cobc -x -Wall -o build/A${i} -I include -L lib src/ASSIGNMENT-${i}.COB \
+cobc -d -x -Wall -o build/A${i} -I include -L lib src/ASSIGNMENT-${i}.COB \
 && read -p "Waiting for user input..." _ \
 && /usr/bin/env bash -c "./build/A${i}"

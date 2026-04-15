@@ -1,5 +1,5 @@
 # SPAC-Mainframe
 
-To build the "Hello world" example:
+To build and run the "Hello world" example (Assignment 1):
 
-`cobc -x -o build/Hello src/Hello.cob`
+`./build.sh 1`

@@ -48,13 +48,13 @@
            05  CURRENT-CPR          PIC X(15).
            05  CURRENT-INDEX        PIC 9(5).
            05  CURRENT-TIMESTAMP    PIC X(20).
-           05  CURRENT-INBOUND      PIC 9(13)V99.
+           05  CURRENT-INBOUND      PIC S9(13)V99.
            05  PRETTY-INBOUND       PIC Z(12)9.99+.
-           05  CURRENT-OUTBOUND     PIC 9(13)V99.
+           05  CURRENT-OUTBOUND     PIC S9(13)V99.
            05  PRETTY-OUTBOUND      PIC Z(12)9.99+.
            05  ORIGINAL-PRETTY      PIC Z(12)9.99+.
            05  CURRENT-AMOUNT       PIC S9(13)V99    VALUE ZEROES.
-           05  CURRENT-AMOUNT-DKK   PIC Z(12)9.99+    VALUE ZEROES.
+           05  CURRENT-AMOUNT-DKK   PIC Z(12)9.99+   VALUE ZEROES.
            05  DKK-STRING           PIC X(16)  VALUE SPACES  JUST RIGHT.
            05  AMOUNT-STRING        PIC X(17)  VALUE SPACES  JUST RIGHT.
            05  CURRENT-TYPE         PIC X(15)        VALUE SPACES.

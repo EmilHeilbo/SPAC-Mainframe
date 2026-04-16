@@ -55,7 +55,8 @@
 
        01  CURRENT-INFO.
            05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
-           05  CURRENT-TX           PIC 999     VALUE ZEROES.
+           05  CURRENT-CPR          PIC X(15).
+           05  CURRENT-IX           PIC 9(5)    VALUE ZEROES.
            05  CURRENT-CURRENCY     PIC X(3).
            05  CURRENT-BALANCE      PIC Z(14)9.99+.
 
@@ -112,7 +113,7 @@
                                TRANS-CPR IN TRANS-RECORD)
                        PERFORM
                            MOVE TRANS-CPR IN TRANS-RECORD TO CURRENT-CPR
-                           MOVE CUST-IX TO CURRENT-INDEX
+                           MOVE CUST-IX TO CURRENT-IX
                            MOVE "Y" TO CPR-FOUND
                        END-PERFORM
                        END-IF
@@ -120,7 +121,7 @@
                            ADD 1 TO CUST-MAX
                            MOVE CUST-MAX TO CUST-IX
                        ELSE
-                           SET CUST-IX TO CURRENT-INDEX
+                           SET CUST-IX TO CURRENT-IX
                        END-IF
                        MOVE TRANS-CPR IN TRANS-RECORD TO CURRENT-CPR
                        MOVE FUNCTION TRIM(CURRENT-CPR) TO CUST-CPR
@@ -139,22 +140,22 @@
            EXIT.
 
        CALCULATE-BALANCE.
-           PERFORM VARYING CURRENT-TX FROM 1 BY 1
-                   UNTIL CURRENT-TX > TRANS-COUNT OF CUSTOMER(CUST-IX)
+           PERFORM VARYING CURRENT-IX FROM 1 BY 1
+                   UNTIL CURRENT-IX > TRANS-COUNT OF CUSTOMER(CUST-IX)
                INITIALIZE CURRENT-AMOUNT
-               MOVE TRANS-CURRENCY OF TRANSACTION(CUST-IX, CURRENT-TX)
+               MOVE TRANS-CURRENCY OF TRANSACTION(CUST-IX, CURRENT-IX)
                        TO CURRENT-CURRENCY
-               MOVE TRANS-AMOUNT OF TRANSACTION(CUST-IX, CURRENT-TX)
+               MOVE TRANS-AMOUNT OF TRANSACTION(CUST-IX, CURRENT-IX)
                        TO CURRENT-AMOUNT
                IF CURRENT-CURRENCY = "DKK"
                    ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
                ELSE
                    IF TRANS-CURRENCY OF TRANSACTION(
-                           CUST-IX, CURRENT-TX) = "USD"
+                           CUST-IX, CURRENT-IX) = "USD"
                        MULTIPLY USD-RATE BY CURRENT-AMOUNT
                    ELSE
                        IF TRANS-CURRENCY OF TRANSACTION(
-                               CUST-IX, CURRENT-TX) = "EUR"
+                               CUST-IX, CURRENT-IX) = "EUR"
                            MULTIPLY EUR-RATE BY CURRENT-AMOUNT
                        ELSE
                            DISPLAY "Unknown currency " CURRENT-CURRENCY

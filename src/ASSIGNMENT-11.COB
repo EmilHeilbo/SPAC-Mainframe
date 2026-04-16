@@ -48,13 +48,15 @@
                06  TRANSACTION OCCURS 100 TIMES.
                    COPY TRANSACT.
 
-       77  USD-CONVERSION-RATE      PIC 9V99    VALUE 6.80.
-       77  EUR-CONVERSION-RATE      PIC 9V99    VALUE 7.50.
+       77  USD-RATE      PIC 9V99    VALUE 6.80.
+       77  EUR-RATE      PIC 9V99    VALUE 7.50.
        77  RECIPIENT-INDENT         PIC X(20)   VALUE SPACES.
        77  BUBBLE-IX                PIC 999     VALUE ZEROES.
 
        01  CURRENT-INFO.
-           COPY A10-BOOK.
+           05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
+           05  CURRENT-TX           PIC 999     VALUE ZEROES.
+           05  CURRENT-CURRENCY     PIC X(3).
 
        01  CPR-FOUND                PIC X       VALUE "N".
            88  FOUND                            VALUE "Y".
@@ -67,7 +69,8 @@
            PERFORM READ-BANKS.
            PERFORM READ-TRANSACTIONS.
            PERFORM CALCULATE-BALANCE VARYING CUST-IX FROM 1 BY 1
-                   UNTIL CUST-IX > CUST-MAX
+                   UNTIL CUST-IX > CUST-MAX.
+           PERFORM BUBBLE-SORT-CUSTOMERS.
            STOP RUN.
 
        READ-BANKS.
@@ -134,7 +137,46 @@
            EXIT.
 
        CALCULATE-BALANCE.
+           PERFORM VARYING CURRENT-TX FROM 1 BY 1
+                   UNTIL CURRENT-TX > TRANS-COUNT OF CUSTOMER(CUST-IX)
+               INITIALIZE CURRENT-AMOUNT
+               MOVE TRANS-CURRENCY OF TRANSACTION(CUST-IX, CURRENT-TX)
+                       TO CURRENT-CURRENCY
+               MOVE TRANS-AMOUNT OF TRANSACTION(CUST-IX, CURRENT-TX)
+                       TO CURRENT-AMOUNT
+               IF CURRENT-CURRENCY = "DKK"
+                   ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
+               ELSE
+                   IF TRANS-CURRENCY OF TRANSACTION(
+                           CUST-IX, CURRENT-TX) = "USD"
+                       MULTIPLY USD-RATE BY CURRENT-AMOUNT
+                   ELSE
+                       IF TRANS-CURRENCY OF TRANSACTION(
+                               CUST-IX, CURRENT-TX) = "EUR"
+                           MULTIPLY EUR-RATE BY CURRENT-AMOUNT
+                       ELSE
+                           DISPLAY "Unknown currency " CURRENT-CURRENCY
+                           MOVE ZERO TO CURRENT-AMOUNT
+                       END-IF
+                   END-IF
+                   ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
+               END-IF
+           END-PERFORM
+           EXIT.
 
+       BUBBLE-SORT-CUSTOMERS.
+           PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > CUST-MAX
+               PERFORM VARYING BUBBLE-IX FROM 1 BY 1
+                       UNTIL BUBBLE-IX > CUST-MAX - CUST-IX
+                   IF CUST-BALANCE OF CUSTOMER(BUBBLE-IX + 1)
+                           < CUST-BALANCE OF CUSTOMER(BUBBLE-IX)
+                       MOVE CUSTOMER(BUBBLE-IX) TO TEMP-CUSTOMER
+                       MOVE CUSTOMER(BUBBLE-IX + 1)
+                               TO CUSTOMER(BUBBLE-IX)
+                       MOVE TEMP-CUSTOMER TO CUSTOMER(BUBBLE-IX + 1)
+                   END-IF
+               END-PERFORM
+           END-PERFORM
            EXIT.
 
        DISPLAY-TOP-3-CUSTOMERS.

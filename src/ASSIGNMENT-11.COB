@@ -51,7 +51,7 @@
        77  USD-RATE      PIC 9V99    VALUE 6.80.
        77  EUR-RATE      PIC 9V99    VALUE 7.50.
        77  RECIPIENT-INDENT         PIC X(20)   VALUE SPACES.
-       77  BUBBLE-IX                PIC 999     VALUE ZEROES.
+       77  BUBBLE-IX                PIC 9(5)    VALUE ZEROES.
 
        01  CURRENT-INFO.
            05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
@@ -70,6 +70,7 @@
        MAIN-PROCEDURE.
            PERFORM READ-BANKS.
            PERFORM READ-TRANSACTIONS.
+           DISPLAY "Calculating balances of " CUST-MAX " customers"
            PERFORM CALCULATE-BALANCE VARYING CUST-IX FROM 1 BY 1
                    UNTIL CUST-IX > CUST-MAX.
            PERFORM BUBBLE-SORT-CUSTOMERS.
@@ -168,11 +169,13 @@
            EXIT.
 
        BUBBLE-SORT-CUSTOMERS.
+           DISPLAY "Sorting "CUST-MAX" customers, this may take a bit.."
+           DISPLAY "Estimated time is 7 seconds per 1'000 customers"
            PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > CUST-MAX
                PERFORM VARYING BUBBLE-IX FROM 1 BY 1
-                       UNTIL BUBBLE-IX > CUST-MAX - CUST-IX
-                   IF CUST-BALANCE OF CUSTOMER(BUBBLE-IX + 1)
-                           < CUST-BALANCE OF CUSTOMER(BUBBLE-IX)
+                       UNTIL BUBBLE-IX >= CUST-MAX - CUST-IX + 1
+                   IF CUST-BALANCE OF CUSTOMER(BUBBLE-IX)
+                           < CUST-BALANCE OF CUSTOMER(BUBBLE-IX + 1)
                        MOVE CUSTOMER(BUBBLE-IX) TO TEMP-CUSTOMER
                        MOVE CUSTOMER(BUBBLE-IX + 1)
                                TO CUSTOMER(BUBBLE-IX)
@@ -187,9 +190,9 @@
                INITIALIZE CURRENT-BALANCE
                MOVE CUST-BALANCE(CUST-IX) TO CURRENT-BALANCE
                DISPLAY "Customer ID: " FUNCTION TRIM(
-                       TRANS-ACCT-ID OF CUSTOMER(CUST-IX))
+                       TRANS-ACCT-ID OF TRANSACTION(CUST-IX 1))
                    "; Name: " FUNCTION TRIM(
-                       TRANS-NAME OF CUSTOMER(CUST-IX))
+                       TRANS-NAME OF TRANSACTION(CUST-IX 1))
                    "; Balance: " FUNCTION TRIM(CURRENT-BALANCE)
            END-PERFORM
            EXIT.

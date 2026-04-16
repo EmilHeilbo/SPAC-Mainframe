@@ -57,6 +57,7 @@
            05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
            05  CURRENT-TX           PIC 999     VALUE ZEROES.
            05  CURRENT-CURRENCY     PIC X(3).
+           05  CURRENT-BALANCE      PIC Z(14)9.99+.
 
        01  CPR-FOUND                PIC X       VALUE "N".
            88  FOUND                            VALUE "Y".
@@ -71,6 +72,7 @@
            PERFORM CALCULATE-BALANCE VARYING CUST-IX FROM 1 BY 1
                    UNTIL CUST-IX > CUST-MAX.
            PERFORM BUBBLE-SORT-CUSTOMERS.
+           PERFORM DISPLAY-TOP-3-CUSTOMERS.
            STOP RUN.
 
        READ-BANKS.
@@ -180,4 +182,13 @@
            EXIT.
 
        DISPLAY-TOP-3-CUSTOMERS.
+           PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > 3
+               INITIALIZE CURRENT-BALANCE
+               MOVE CUST-BALANCE(CUST-IX) TO CURRENT-BALANCE
+               DISPLAY "Customer ID: " FUNCTION TRIM(
+                       TRANS-ACCT-ID OF CUSTOMER(CUST-IX))
+                   "; Name: " FUNCTION TRIM(
+                       TRANS-NAME OF CUSTOMER(CUST-IX))
+                   "; Balance: " FUNCTION TRIM(CURRENT-BALANCE)
+           END-PERFORM
            EXIT.

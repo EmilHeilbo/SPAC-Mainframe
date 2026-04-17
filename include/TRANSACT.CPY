@@ -1,4 +1,5 @@
 TNSACT*    Transaction info
+           *> 32 +
        10  TRANS-CPR              PIC X(15).
        10  TRANS-NAME             PIC X(30).
        10  TRANS-ADDRESS          PIC X(50).

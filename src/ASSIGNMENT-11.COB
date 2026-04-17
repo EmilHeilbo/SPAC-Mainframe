@@ -51,6 +51,18 @@
        77  RECIPIENT-INDENT         PIC X(20)   VALUE SPACES.
        77  BUBBLE-IX                PIC 9(5).
 
+       01  STATISTICS.
+           05  MAX-REPORTS          PIC 9(5)    VALUE ZEROES.
+           05  TEMP-REPORT          PIC X(50)   VALUE SPACES.
+           05  PRETTY-INBOUND       PIC Z(11)9.99.
+           05  PRETTY-OUTBOUND      PIC Z(11)9.99+.
+           05  MONTHLY-STATS OCCURS 1 TO 10000 TIMES
+                   DEPENDING ON MAX-REPORTS
+                   INDEXED BY REPORT-IX.
+               10  STAT-PERIOD      PIC X(7)    VALUE SPACES. *> YYYY-MM
+               10  INBOUND-DKK      PIC S9(15)V99  VALUE ZEROES.
+               10  OUTBOUND-DKK     PIC S9(15)V99  VALUE ZEROES.
+
        01  CURRENT-INFO.
            05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
            05  CURRENT-CPR          PIC X(15).
@@ -79,6 +91,8 @@
       *    Quick pass over CUSTOMERS to find the highest balances
            PERFORM FIND-HIGHEST-BALANCES
            PERFORM DISPLAY-TOP-3-CUSTOMERS.
+           PERFORM GENERATE-MONTHLY-STATS.
+           PERFORM DISPLAY-MONTHLY-STATS
            STOP RUN.
 
        READ-BANKS.
@@ -221,4 +235,83 @@
                            TRANSACTION(TOP-CUSTOMERS(HIGH-IX), 1))
                    "; Balance: " FUNCTION TRIM(CURRENT-BALANCE) " DKK"
            END-PERFORM
+           EXIT.
+
+       BUBBLE-SORT-REPORTS.
+           DISPLAY "Sorting " MAX-REPORTS " reports using BUBBLE SORT"
+           PERFORM VARYING REPORT-IX FROM 1 BY 1
+                   UNTIL REPORT-IX > MAX-REPORTS
+               PERFORM VARYING BUBBLE-IX FROM 1 BY 1
+                       UNTIL BUBBLE-IX >= MAX-REPORTS - REPORT-IX + 1
+                   IF STAT-PERIOD(BUBBLE-IX)
+                           > STAT-PERIOD(BUBBLE-IX + 1)
+                       MOVE MONTHLY-STATS(BUBBLE-IX) TO TEMP-REPORT
+                       MOVE MONTHLY-STATS(BUBBLE-IX + 1)
+                               TO MONTHLY-STATS(BUBBLE-IX)
+                       MOVE TEMP-REPORT TO MONTHLY-STATS(BUBBLE-IX + 1)
+                   END-IF
+               END-PERFORM
+           END-PERFORM
+           EXIT.
+
+       GENERATE-MONTHLY-STATS.
+      *    Iterate over all customers and all transactions,
+      *    calculating the DKK value of each transaction
+      *    and checking if the current period, eg. 2026-04, exists.
+           *> Outer loop - customers:
+           PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > CUST-MAX
+               *> Inner loop - transactions:
+               PERFORM VARYING TRANS-IX FROM 1 BY 1
+                       UNTIL TRANS-IX > TRANS-COUNT OF CUSTOMER(CUST-IX)
+                   *> Convert amount to DKK
+                   MOVE TRANS-CURRENCY OF TRANSACTION(CUST-IX, TRANS-IX)
+                           TO CURRENT-CURRENCY
+                   MOVE TRANS-AMOUNT OF TRANSACTION(CUST-IX, TRANS-IX)
+                           TO CURRENT-AMOUNT
+                   PERFORM CONVERT-CURRENT-AMOUNT
+                   *> Check if current period exists, create new if not
+                   MOVE "N" TO INSTANCE-FOUND
+                   INITIALIZE CURRENT-IX
+                   IF MAX-REPORTS > 0
+                       SET REPORT-IX TO 1
+                       SEARCH MONTHLY-STATS VARYING REPORT-IX
+                               WHEN TRANS-TIMESTAMP OF TRANSACTION(
+                                   CUST-IX, TRANS-IX)(1:7)
+                               = STAT-PERIOD(REPORT-IX)
+                           PERFORM
+                               MOVE "Y" TO INSTANCE-FOUND
+                               MOVE REPORT-IX TO CURRENT-IX
+                           END-PERFORM
+                       END-IF
+                   IF NOT FOUND
+                       ADD 1 TO MAX-REPORTS
+                       MOVE MAX-REPORTS TO CURRENT-IX
+                       MOVE TRANS-TIMESTAMP OF TRANSACTION(
+                               CUST-IX, TRANS-IX)(1:7)
+                           TO STAT-PERIOD(CURRENT-IX)
+                   END-IF
+                   IF CURRENT-AMOUNT < 0
+                       ADD CURRENT-AMOUNT TO OUTBOUND-DKK(CURRENT-IX)
+                   ELSE
+                       ADD CURRENT-AMOUNT TO INBOUND-DKK(CURRENT-IX)
+                   END-IF
+               END-PERFORM
+           END-PERFORM
+      *    Now it's time to sort them all from earliest to latest
+           PERFORM BUBBLE-SORT-REPORTS
+           EXIT.
+
+       DISPLAY-MONTHLY-STATS.
+           DISPLAY "|---------|-----------------|------------------|"
+           DISPLAY "| YYYY-MM |  Inbound (DKK)  |  Outbound (DKK)  |"
+           DISPLAY "|---------|-----------------|------------------|"
+           PERFORM VARYING REPORT-IX FROM 1 BY 1
+                   UNTIL REPORT-IX > MAX-REPORTS
+               INITIALIZE PRETTY-INBOUND PRETTY-OUTBOUND
+               MOVE INBOUND-DKK(REPORT-IX) TO PRETTY-INBOUND
+               MOVE OUTBOUND-DKK(REPORT-IX) TO PRETTY-OUTBOUND
+               DISPLAY "| " STAT-PERIOD(REPORT-IX) " | "
+                   PRETTY-INBOUND " | " PRETTY-OUTBOUND " |"
+           END-PERFORM
+           DISPLAY "|---------|-----------------|------------------|"
            EXIT.

@@ -33,25 +33,23 @@
 
        01  TRANSACTIONS.
            05  CUST-MAX             PIC 9(5)    VALUE ZEROES.
-           05  TEMP-CUSTOMER.
-               06  TEMP-CPR         PIC X(11)   VALUE SPACES.
-               06  TEMP-BALANCE     PIC S9(15)V99 VALUE 50000.00.
-               06  TEMP-COUNT       PIC 9(3)    VALUE ZEROES.
-               06  TEMP-TRANS OCCURS 100 TIMES.
-                   COPY TRANSACT.
+           05  HIGHEST-BALANCES OCCURS 3 TIMES
+               INDEXED BY HIGH-IX.
+               10  TOP-CUSTOMERS    PIC 9(5)    VALUE ZEROES.
+           05  TEMP-CUSTOMER        PIC X(20032).
            05  CUSTOMER OCCURS 1 TO 10000 TIMES
                    DEPENDING ON CUST-MAX
                    INDEXED BY CUST-IX.
                06  CUST-CPR         PIC X(11)   VALUE SPACES.
                06  CUST-BALANCE     PIC S9(15)V99 VALUE 50000.00.
                06  TRANS-COUNT      PIC 9(3)    VALUE ZEROES.
-               06  TRANSACTION OCCURS 100 TIMES.
+               06  TRANSACTION OCCURS 100 TIMES INDEXED BY TRANS-IX.
                    COPY TRANSACT.
 
        77  USD-RATE      PIC 9V99    VALUE 6.80.
        77  EUR-RATE      PIC 9V99    VALUE 7.50.
        77  RECIPIENT-INDENT         PIC X(20)   VALUE SPACES.
-       77  BUBBLE-IX                PIC 9(5)    VALUE ZEROES.
+       77  BUBBLE-IX                PIC 9(5).
 
        01  CURRENT-INFO.
            05  CURRENT-AMOUNT       PIC S9(13)V99 VALUE ZEROES.
@@ -60,7 +58,7 @@
            05  CURRENT-CURRENCY     PIC X(3).
            05  CURRENT-BALANCE      PIC Z(14)9.99+.
 
-       01  CPR-FOUND                PIC X       VALUE "N".
+       01  INSTANCE-FOUND           PIC X       VALUE "N".
            88  FOUND                            VALUE "Y".
        01  EOF-SWITCH               PIC X       VALUE "N".
            88  EOF                              VALUE "Y".
@@ -73,7 +71,13 @@
            DISPLAY "Calculating balances of " CUST-MAX " customers"
            PERFORM CALCULATE-BALANCE VARYING CUST-IX FROM 1 BY 1
                    UNTIL CUST-IX > CUST-MAX.
-           PERFORM BUBBLE-SORT-CUSTOMERS.
+      *    Option to sort customers by balance exists as a sanity-check
+           *>PERFORM BUBBLE-SORT-CUSTOMERS.
+           *>PERFORM VARYING HIGH-IX FROM 1 BY 1 UNTIL HIGH-IX > 3
+           *>    MOVE HIGH-IX TO TOP-CUSTOMERS(HIGH-IX)
+           *>END-PERFORM
+      *    Quick pass over CUSTOMERS to find the highest balances
+           PERFORM FIND-HIGHEST-BALANCES
            PERFORM DISPLAY-TOP-3-CUSTOMERS.
            STOP RUN.
 
@@ -106,7 +110,7 @@
                    *> Check if customer already exists
                    IF NOT TRANS-CPR IN TRANS-RECORD = CURRENT-CPR
                            AND NOT CUST-MAX = 10000
-                       MOVE "N" TO CPR-FOUND
+                       MOVE "N" TO INSTANCE-FOUND
                        IF CUST-MAX > 0
                        SET CUST-IX TO 1
                        SEARCH CUSTOMER VARYING CUST-IX
@@ -115,7 +119,7 @@
                        PERFORM
                            MOVE TRANS-CPR IN TRANS-RECORD TO CURRENT-CPR
                            MOVE CUST-IX TO CURRENT-IX
-                           MOVE "Y" TO CPR-FOUND
+                           MOVE "Y" TO INSTANCE-FOUND
                        END-PERFORM
                        END-IF
                        IF NOT FOUND
@@ -140,6 +144,20 @@
            MOVE SPACES TO CURRENT-CPR
            EXIT.
 
+       CONVERT-CURRENT-AMOUNT.
+           IF CURRENT-CURRENCY = "DKK"
+               CONTINUE
+           ELSE
+               IF CURRENT-CURRENCY = "USD"
+                   MULTIPLY USD-RATE BY CURRENT-AMOUNT
+               ELSE
+                   IF CURRENT-CURRENCY = "EUR"
+                       MULTIPLY EUR-RATE BY CURRENT-AMOUNT
+                   END-IF
+               END-IF
+           END-IF
+           EXIT.
+
        CALCULATE-BALANCE.
            PERFORM VARYING CURRENT-IX FROM 1 BY 1
                    UNTIL CURRENT-IX > TRANS-COUNT OF CUSTOMER(CUST-IX)
@@ -148,23 +166,30 @@
                        TO CURRENT-CURRENCY
                MOVE TRANS-AMOUNT OF TRANSACTION(CUST-IX, CURRENT-IX)
                        TO CURRENT-AMOUNT
-               IF CURRENT-CURRENCY = "DKK"
-                   ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
-               ELSE
-                   IF TRANS-CURRENCY OF TRANSACTION(
-                           CUST-IX, CURRENT-IX) = "USD"
-                       MULTIPLY USD-RATE BY CURRENT-AMOUNT
-                   ELSE
-                       IF TRANS-CURRENCY OF TRANSACTION(
-                               CUST-IX, CURRENT-IX) = "EUR"
-                           MULTIPLY EUR-RATE BY CURRENT-AMOUNT
-                       ELSE
-                           DISPLAY "Unknown currency " CURRENT-CURRENCY
-                           MOVE ZERO TO CURRENT-AMOUNT
+               PERFORM CONVERT-CURRENT-AMOUNT
+               ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
+           END-PERFORM
+           EXIT.
+
+       FIND-HIGHEST-BALANCES.
+           PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > CUST-MAX
+               MOVE "N" TO INSTANCE-FOUND
+               PERFORM VARYING HIGH-IX FROM 1 BY 1
+                       UNTIL HIGH-IX > 3 OR FOUND
+                   IF TOP-CUSTOMERS(HIGH-IX) = 0
+                       MOVE CUST-IX TO TOP-CUSTOMERS(HIGH-IX)
+                       MOVE "Y" TO INSTANCE-FOUND
+                   ELSE IF CUST-BALANCE(CUST-IX)
+                           > CUST-BALANCE(TOP-CUSTOMERS(HIGH-IX))
+                       IF HIGH-IX < 3
+                           MOVE TOP-CUSTOMERS(HIGH-IX)
+                               TO TOP-CUSTOMERS(HIGH-IX + 1)
                        END-IF
+                       MOVE CUST-IX TO TOP-CUSTOMERS(HIGH-IX)
+                       MOVE "Y" TO INSTANCE-FOUND
                    END-IF
-                   ADD CURRENT-AMOUNT TO CUST-BALANCE(CUST-IX)
-               END-IF
+                   END-IF
+               END-PERFORM
            END-PERFORM
            EXIT.
 
@@ -186,13 +211,14 @@
            EXIT.
 
        DISPLAY-TOP-3-CUSTOMERS.
-           PERFORM VARYING CUST-IX FROM 1 BY 1 UNTIL CUST-IX > 3
+           PERFORM VARYING HIGH-IX FROM 1 BY 1 UNTIL HIGH-IX > 3
                INITIALIZE CURRENT-BALANCE
-               MOVE CUST-BALANCE(CUST-IX) TO CURRENT-BALANCE
-               DISPLAY "Customer ID: " FUNCTION TRIM(
-                       TRANS-ACCT-ID OF TRANSACTION(CUST-IX 1))
-                   "; Name: " FUNCTION TRIM(
-                       TRANS-NAME OF TRANSACTION(CUST-IX 1))
-                   "; Balance: " FUNCTION TRIM(CURRENT-BALANCE)
+               MOVE CUST-BALANCE(TOP-CUSTOMERS(HIGH-IX))
+                   TO CURRENT-BALANCE
+               DISPLAY "Customer ID: " FUNCTION TRIM(TRANS-ACCT-ID OF
+                       TRANSACTION(TOP-CUSTOMERS(HIGH-IX), 1))
+                   "; Name: " FUNCTION TRIM(TRANS-NAME OF
+                           TRANSACTION(TOP-CUSTOMERS(HIGH-IX), 1))
+                   "; Balance: " FUNCTION TRIM(CURRENT-BALANCE) " DKK"
            END-PERFORM
            EXIT.
